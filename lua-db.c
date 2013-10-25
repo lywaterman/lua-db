@@ -15,7 +15,7 @@ static int g_Init = 0;
 
 static void
 push_table(lua_State *L, struct hash * h, const char * key, size_t sz) {
-	size_t n = lua_rawlen(L, -1);
+	size_t n = lua_objlen(L, -1);
 	struct table tbl;
 	tbl.size = (int)n;
 	const char * data[n];
@@ -94,6 +94,8 @@ _init(lua_State *L) {
 	lua_gc(dbL, LUA_GCRESTART, 0);
 
 	int top = lua_gettop(dbL);
+
+	printf("gettop:%d\n", lua_gettop(dbL));
 	int err = luaL_dofile(dbL, loader);
 	if (err) {
 		size_t len = 0;
@@ -102,31 +104,52 @@ _init(lua_State *L) {
 		lua_close(dbL);
 		luaL_error(L, "dofile : %s" , lua_tostring(L,-1));
 	}
+
+	printf("gettop:%d\n", lua_gettop(dbL));
 	lua_settop(dbL, top+1);
 	lua_insert(dbL, DATA);
 
+
+	printf("gettop:%d\n", lua_gettop(dbL));
+
+	printf("%d\n", lua_istable(dbL, DATA));
 	if (lua_type(dbL, DATA) != LUA_TTABLE) {
 		lua_close(dbL);
 		luaL_error(L, "%s need return a table", loader);
 	}
 
+	printf("gettop:%d\n", lua_gettop(dbL));
 	lua_newtable(dbL);
-	lua_rawgeti(dbL, LUA_REGISTRYINDEX, LUA_RIDX_GLOBALS);
+	//lua_rawget(dbL, LUA_REGISTRYINDEX);
+
+	lua_rawgeti(dbL, LUA_REGISTRYINDEX, LUA_GLOBALSINDEX);
+	printf("gettop:%d\n", lua_gettop(dbL));
 	lua_setfield(dbL, -2, "__index");
+
+	printf("%d\n", lua_istable(dbL, DATA));
+
+	printf("gettop:%d\n", lua_gettop(dbL));
 	lua_setmetatable(dbL, DATA);
 
+	printf("%d\n", lua_istable(dbL, DATA));
 	const char * posloader = luaL_checkstring(L,2);
 
-	err = luaL_loadstring(dbL, posloader);
+	printf(posloader);
+	err = luaL_dostring(dbL, posloader);
 	if (err) {
 		lua_close(dbL);
 		luaL_error(L, "load posload error");
 	}
 
+	printf("is_function:%d\n", lua_isfunction(dbL, -1));
 	lua_pushvalue(dbL,DATA);
-	lua_setupvalue(dbL, -2, 1);  // set DATA to _ENV of posloader 
+	printf("%d\n", lua_istable(dbL, DATA));
+	//lua_setupvalue(dbL, -2, 1);  // set DATA to _ENV of posloader 
+	//lua_setfenv(dbL, -2);
+	
 
-	err = lua_pcall(dbL, 0, 1, 0);
+	printf("gettop12313123:%d\n", lua_gettop(dbL));
+	err = lua_pcall(dbL, 1, 1, 0);
 
 	if (err) {
 		size_t len = 0;
@@ -237,7 +260,8 @@ luaopen_database_c(lua_State *L) {
 		{ "expend" , db_expend },
 		{ NULL, NULL },
 	};
-	luaL_checkversion(L);
-	luaL_newlib(L,l);
+	//luaL_checkversion(L);
+	//luaL_newlib(L,l);
+	luaL_register(L, "database", l);
 	return 1;
 }

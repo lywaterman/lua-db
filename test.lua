@@ -1,6 +1,8 @@
 local db = require "database"
-
+print("fsddsf")
 local mem = db.open "load.lua"
+
+print("23482048203982094")
 print("open:" , mem)
 
 t = db.get "A"
